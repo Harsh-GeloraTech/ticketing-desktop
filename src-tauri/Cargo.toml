@@ -33,8 +33,12 @@ thiserror = "1"
 
 [target.'cfg(windows)'.dependencies]
 # Raw spooler access on Windows (OpenPrinter / StartDocPrinter / WritePrinter).
+# NOTE: OpenPrinterW and PRINTER_DEFAULTSW are gated behind Win32_Graphics_Gdi
+# in the windows crate (PRINTER_DEFAULTSW references a GDI type), so that
+# feature is required in addition to Win32_Graphics_Printing.
 windows = { version = "0.58", features = [
     "Win32_Foundation",
+    "Win32_Graphics_Gdi",
     "Win32_Graphics_Printing",
     "Win32_System_Com",
 ] }
