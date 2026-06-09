@@ -82,7 +82,7 @@ async fn send_raw_inner(name: &str, data: Vec<u8>) -> Result<(), PrinterError> {
 
 #[cfg(windows)]
 fn win_raw_print(name: &str, data: &[u8]) -> Result<(), PrinterError> {
-    use windows::core::PCWSTR;
+    use windows::core::{PCWSTR, PWSTR};
     use windows::Win32::Foundation::HANDLE;
     use windows::Win32::Graphics::Printing::{
         ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW,
@@ -111,10 +111,12 @@ fn win_raw_print(name: &str, data: &[u8]) -> Result<(), PrinterError> {
             PrinterError::Print(format!("OpenPrinter failed for '{name}': {e}"))
         })?;
 
+        // DOC_INFO_1W fields are PWSTR (mutable wide-string pointers) in the
+        // windows crate, hence PWSTR here rather than PCWSTR.
         let doc_info = DOC_INFO_1W {
-            pDocName: PCWSTR(doc_name.as_mut_ptr()),
-            pOutputFile: PCWSTR::null(),
-            pDatatype: PCWSTR(datatype.as_mut_ptr()),
+            pDocName: PWSTR(doc_name.as_mut_ptr()),
+            pOutputFile: PWSTR::null(),
+            pDatatype: PWSTR(datatype.as_mut_ptr()),
         };
 
         let result = (|| {
