@@ -1,0 +1,84 @@
+# Builds the desktop app installers for Windows and Linux in the cloud.
+#
+# WHY: building a Windows .msi/.exe requires a Windows machine. This workflow
+# uses GitHub's free Windows + Linux runners so you get installers without
+# owning either OS. The finished files are attached to the run as "artifacts"
+# you can download from the GitHub Actions page.
+#
+# LAYOUT: this assumes the desktop app lives at the REPOSITORY ROOT
+# (package.json, src/, src-tauri/ are at the top level — no wrapper folder).
+#
+# HOW TO USE:
+#   1. Push this repository to GitHub.
+#   2. Go to the repo -> Actions tab -> "Build installers" -> "Run workflow".
+#   3. When it finishes (~10-15 min), download the artifacts:
+#        - windows-installers  -> .msi and -setup.exe  (send to Windows clients)
+#        - linux-installers     -> .AppImage and .deb    (send to Linux clients)
+
+name: Build installers
+
+on:
+  workflow_dispatch: # adds the manual "Run workflow" button
+  push:
+    tags:
+      - "v*" # also builds automatically when you push a version tag like v0.1.0
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: windows-installers
+            # collect both the MSI and the NSIS .exe
+            paths: |
+              src-tauri/target/release/bundle/msi/*.msi
+              src-tauri/target/release/bundle/nsis/*-setup.exe
+          - os: ubuntu-22.04
+            artifact: linux-installers
+            paths: |
+              src-tauri/target/release/bundle/appimage/*.AppImage
+              src-tauri/target/release/bundle/deb/*.deb
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+            libayatana-appindicator3-dev build-essential file
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build the app + installers
+        run: npm run tauri build
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.paths }}
+          if-no-files-found: error

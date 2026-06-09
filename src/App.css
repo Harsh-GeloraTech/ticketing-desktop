@@ -1,0 +1,384 @@
+/* src/App.css */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap");
+
+:root {
+  --paper: #f6f4ef;
+  --card: #ffffff;
+  --ink: #1c1b19;
+  --muted: #7c7768;
+  --line: #e7e3d9;
+  --accent: #0f7b6c;       /* deep emerald */
+  --accent-soft: #e2f0ec;
+  --amber: #b4731a;
+  --amber-soft: #f6ebd9;
+  --danger: #b23b3b;
+  --shadow: 0 1px 2px rgba(28, 27, 25, 0.04), 0 8px 24px rgba(28, 27, 25, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 28px 80px;
+}
+
+/* Header */
+.app__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+  animation: rise 0.5s ease both;
+}
+.app__eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.app__title {
+  margin: 0;
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 700;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.app__badge {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid #cfe6e0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 22px;
+  animation: rise 0.55s ease both;
+}
+.card--create { animation-delay: 0.06s; }
+.card:nth-of-type(2) { animation-delay: 0.12s; }
+.card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.card__title {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+.card__head .card__title { margin: 0; }
+.count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+/* Form */
+.form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field span { font-size: 13px; color: var(--muted); font-weight: 500; }
+.field input {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--accent); }
+
+/* Buttons */
+.btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.08s, background 0.15s, border-color 0.15s;
+}
+.btn:hover { background: var(--paper); }
+.btn:active { transform: translateY(1px); }
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn--primary:hover { background: #0c6a5d; }
+.btn--primary:disabled { opacity: 0.6; cursor: default; }
+.btn--ghost { color: var(--muted); }
+.btn--danger { color: var(--danger); border-color: #ecd2d2; }
+.btn--danger:hover { background: #fbf0f0; }
+
+/* Table */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 12px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.tbl td {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  font-size: 14px;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.mono { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+
+/* Status pills */
+.pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+}
+.pill--active { color: var(--accent); background: var(--accent-soft); }
+.pill--used { color: var(--amber); background: var(--amber-soft); }
+.pill--cancelled { color: var(--danger); background: #f6e6e6; }
+
+.actions { display: flex; gap: 8px; justify-content: flex-end; }
+.muted { color: var(--muted); font-size: 14px; }
+
+.alert {
+  background: #fbeceb;
+  border: 1px solid #efcfcd;
+  color: var(--danger);
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Print ---- */
+/* On screen the print area is hidden; only shown when printing. */
+#print-area { display: none; }
+
+@media print {
+  /* Hide the app, show only the ticket */
+  .app { display: none !important; }
+  #print-area {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .ticket {
+    width: 320px;
+    text-align: center;
+    border: 2px dashed #000;
+    border-radius: 12px;
+    padding: 28px 20px;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+  .ticket__brand {
+    margin: 0 0 8px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    font-size: 14px;
+  }
+  .ticket__divider {
+    height: 1px;
+    background: #000;
+    opacity: 0.2;
+    margin: 0 0 18px;
+  }
+  .ticket__code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    margin: 16px 0 6px;
+    word-break: break-all;
+  }
+  .ticket__meta { margin: 0 0 14px; font-weight: 600; font-size: 15px; }
+  .ticket__note { margin: 0; font-size: 11px; color: #555; }
+}
+
+/* ---- Tabs ---- */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 22px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 5px;
+  width: fit-content;
+}
+.tab {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.tab--active { background: var(--accent); color: #fff; }
+
+/* ---- Scan ---- */
+.reader {
+  width: 100%;
+  max-width: 360px;
+  margin: 4px auto 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.reader:empty { display: none; }
+.scan__controls { display: flex; justify-content: center; margin-bottom: 18px; }
+.scan__manual { border-top: 1px dashed var(--line); padding-top: 16px; }
+.scan__input {
+  font: inherit;
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+}
+.scan__input:focus { border-color: var(--accent); }
+
+/* ---- Verdict ---- */
+.verdict {
+  margin-top: 22px;
+  text-align: center;
+  border-radius: 16px;
+  padding: 32px 24px;
+  animation: rise 0.3s ease both;
+}
+.verdict--ok { background: var(--accent-soft); border: 1px solid #bfe0d8; }
+.verdict--fail { background: #fbeceb; border: 1px solid #efcfcd; }
+.verdict__icon {
+  width: 64px; height: 64px; line-height: 64px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  font-size: 34px; font-weight: 700; color: #fff;
+}
+.verdict--ok .verdict__icon { background: var(--accent); }
+.verdict--fail .verdict__icon { background: var(--danger); }
+.verdict__title {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 22px; font-weight: 700;
+}
+.verdict--ok .verdict__title { color: var(--accent); }
+.verdict--fail .verdict__title { color: var(--danger); }
+.verdict__reason { color: var(--ink); margin-top: 6px; font-size: 15px; }
+.verdict__code { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+
+/* ---- Printer status badge (header) ---- */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  max-width: 360px;
+}
+.status--ok { color: var(--accent); }
+.status--down { color: var(--danger); }
+.status--none { color: var(--muted); font-weight: 500; }
+.status__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Success alert (reuses .alert layout) ---- */
+.alert--ok {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.small { font-size: 12px; }
+
+/* ---- On-screen ticket preview (Test ticket tab) ---- */
+.last-ticket { margin-top: 20px; }
+.ticket--preview {
+  width: 280px;
+  text-align: center;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  padding: 22px 18px;
+  margin-top: 12px;
+}
+.ticket--preview .ticket__brand {
+  margin: 0 0 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: 15px;
+}
+.ticket--preview .ticket__divider {
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.18;
+  margin: 0 0 14px;
+}
+.ticket--preview .ticket__meta {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.ticket--preview .ticket__note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
