@@ -9,6 +9,7 @@ import {
   updateTicketStatus,
 } from "./api";
 import ScanView from "./ScanView";
+import DatePicker from "./DatePicker";
 import PrinterSettings from "./PrinterSettings";
 import PrinterStatusBadge from "./PrinterStatusBadge";
 import TestTicket from "./TestTicket";
@@ -130,11 +131,7 @@ function App() {
             <div className="form-row">
               <label className="field">
                 <span>Valid date</span>
-                <input
-                  type="date"
-                  value={validDate}
-                  onChange={(e) => setValidDate(e.target.value)}
-                />
+                <DatePicker value={validDate} onChange={setValidDate} />
               </label>
               <button
                 className="btn btn--primary"

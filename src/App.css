@@ -76,7 +76,13 @@ body {
   margin-bottom: 22px;
   animation: rise 0.55s ease both;
 }
-.card--create { animation-delay: 0.06s; }
+.card--create {
+  animation-delay: 0.06s;
+  /* Sit above sibling cards so the date-picker popup isn't clipped behind the
+     next card (each animated .card forms its own stacking context). */
+  position: relative;
+  z-index: 5;
+}
 .card:nth-of-type(2) { animation-delay: 0.12s; }
 .card__head {
   display: flex;
@@ -381,4 +387,86 @@ body {
   margin: 12px 0 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* ---- Custom date picker (replaces native input type=date) ---- */
+.dp {
+  position: relative;
+  display: inline-block;
+}
+.dp__input {
+  cursor: pointer;
+  min-width: 150px;
+}
+.dp__pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  width: 252px;
+}
+.dp__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.dp__title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.dp__nav {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink);
+}
+.dp__nav:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.dp__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dp__grid--head {
+  margin-bottom: 4px;
+}
+.dp__wd {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 4px 0;
+}
+.dp__cell {
+  aspect-ratio: 1;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink);
+}
+.dp__cell:hover:not(.dp__cell--empty) {
+  background: var(--accent-soft);
+}
+.dp__cell--empty {
+  cursor: default;
+}
+.dp__cell--selected {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
 }
