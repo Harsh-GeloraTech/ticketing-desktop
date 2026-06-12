@@ -3,6 +3,7 @@
 
 mod db;
 mod printer;
+mod sync;
 mod tickets;
 
 use db::AppState;
@@ -23,6 +24,11 @@ pub fn run() {
             let handle = app.handle().clone();
             let pool = tauri::async_runtime::block_on(db::init(&handle))
                 .expect("failed to initialise local database");
+
+            // Start the background sync drain: pushes queued local changes to the
+            // cloud Axum API and retries with backoff while offline.
+            sync::spawn_worker(pool.clone());
+
             app.manage(AppState { db: pool });
             Ok(())
         })

@@ -14,6 +14,7 @@ use tauri::State;
 use uuid::Uuid;
 
 use crate::db::AppState;
+use crate::sync;
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub struct Ticket {
@@ -71,7 +72,10 @@ pub async fn create_ticket(
 ) -> Result<Ticket, String> {
     let code = format!("TKT-{}", Uuid::new_v4().simple());
 
-    sqlx::query_as::<_, Ticket>(
+    // Business row + outbox row in ONE transaction (transactional outbox).
+    let mut tx = state.db.begin().await.map_err(|e| e.to_string())?;
+
+    let ticket = sqlx::query_as::<_, Ticket>(
         "INSERT INTO tickets (ticket_code, invoice_id, valid_date, status)
          VALUES (?, ?, ?, 'active')
          RETURNING id, ticket_code, invoice_id, valid_date, status, used_at, created_at",
@@ -79,9 +83,16 @@ pub async fn create_ticket(
     .bind(&code)
     .bind(invoice_id)
     .bind(&valid_date)
-    .fetch_one(&state.db)
+    .fetch_one(&mut *tx)
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?;
+
+    sync::enqueue(&mut tx, "ticket", ticket.id, "create", &ticket)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+    Ok(ticket)
 }
 
 /// PUT /tickets/{id}  ->  update_ticket
@@ -94,7 +105,9 @@ pub async fn update_ticket(
     status: Option<String>,
     valid_date: Option<String>,
 ) -> Result<Ticket, String> {
-    sqlx::query_as::<_, Ticket>(
+    let mut tx = state.db.begin().await.map_err(|e| e.to_string())?;
+
+    let ticket = sqlx::query_as::<_, Ticket>(
         "UPDATE tickets
          SET status     = COALESCE(?, status),
              valid_date = COALESCE(?, valid_date),
@@ -106,10 +119,17 @@ pub async fn update_ticket(
     .bind(&valid_date)
     .bind(&status)
     .bind(id)
-    .fetch_optional(&state.db)
+    .fetch_optional(&mut *tx)
     .await
     .map_err(|e| e.to_string())?
-    .ok_or_else(|| "Ticket not found".to_string())
+    .ok_or_else(|| "Ticket not found".to_string())?;
+
+    sync::enqueue(&mut tx, "ticket", ticket.id, "update", &ticket)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    tx.commit().await.map_err(|e| e.to_string())?;
+    Ok(ticket)
 }
 
 /// DELETE /tickets/{id}  ->  delete_ticket
@@ -188,16 +208,28 @@ async fn validate_inner(db: &SqlitePool, ticket_code: &str) -> Result<Validation
         });
     }
 
-    // Valid — mark used so it can't enter twice.
-    sqlx::query("UPDATE tickets SET status = 'used', used_at = datetime('now') WHERE id = ?")
-        .bind(t.id)
-        .execute(db)
-        .await?;
+    // Valid — mark used so it can't enter twice. The mutation + its outbox row
+    // go in ONE transaction, and we re-read the row so the synced payload
+    // carries the final 'used' state (status + used_at).
+    let mut tx = db.begin().await?;
+
+    let used = sqlx::query_as::<_, Ticket>(
+        "UPDATE tickets SET status = 'used', used_at = datetime('now')
+         WHERE id = ?
+         RETURNING id, ticket_code, invoice_id, valid_date, status, used_at, created_at",
+    )
+    .bind(t.id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    sync::enqueue(&mut tx, "ticket", used.id, "validate", &used).await?;
+
+    tx.commit().await?;
 
     Ok(ValidationResult {
         valid: true,
         reason: "Entry granted".into(),
-        ticket_code: Some(t.ticket_code),
-        valid_date: Some(t.valid_date),
+        ticket_code: Some(used.ticket_code),
+        valid_date: Some(used.valid_date),
     })
 }
