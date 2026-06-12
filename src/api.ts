@@ -1,7 +1,13 @@
 // src/api.ts
-// Thin typed client over the Axum backend.
+// Local-first ticket client. These now call the Tauri Rust core via invoke()
+// instead of the HTTP backend, so the built app is fully self-contained (no
+// localhost server needed). Cloud sync happens in the background in Rust.
+//
+// The exported function NAMES and TYPES are unchanged, so App.tsx and
+// ScanView.tsx need no modifications. Tauri maps the camelCase argument keys
+// below to the snake_case Rust command parameters automatically.
 
-const API = "http://localhost:8080";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface Ticket {
   id: number;
@@ -20,46 +26,25 @@ export interface ValidationResult {
   valid_date: string | null;
 }
 
-async function handle<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(detail || `Request failed (${res.status})`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
-
 export function listTickets(): Promise<Ticket[]> {
-  return fetch(`${API}/tickets`).then((r) => handle<Ticket[]>(r));
+  return invoke<Ticket[]>("list_tickets");
 }
 
 export function createTicket(valid_date: string): Promise<Ticket> {
-  return fetch(`${API}/tickets`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ valid_date }),
-  }).then((r) => handle<Ticket>(r));
+  // Rust param `valid_date` <- camelCase `validDate`.
+  return invoke<Ticket>("create_ticket", { validDate: valid_date });
 }
 
 export function updateTicketStatus(id: number, status: string): Promise<Ticket> {
-  return fetch(`${API}/tickets/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
-  }).then((r) => handle<Ticket>(r));
+  return invoke<Ticket>("update_ticket", { id, status });
 }
 
 export function deleteTicket(id: number): Promise<void> {
-  return fetch(`${API}/tickets/${id}`, { method: "DELETE" }).then((r) =>
-    handle<void>(r),
-  );
+  return invoke<void>("delete_ticket", { id });
 }
 
-// The scanner sends the decoded code here; backend grants or denies entry.
+// The scanner sends the decoded code here; the local core grants or denies entry
+// (and queues the change for cloud sync).
 export function validateTicket(ticket_code: string): Promise<ValidationResult> {
-  return fetch(`${API}/validate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ticket_code }),
-  }).then((r) => handle<ValidationResult>(r));
+  return invoke<ValidationResult>("validate_ticket", { ticketCode: ticket_code });
 }
