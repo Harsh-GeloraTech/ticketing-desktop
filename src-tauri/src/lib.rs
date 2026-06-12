@@ -3,6 +3,7 @@
 
 mod db;
 mod printer;
+mod tickets;
 
 use db::AppState;
 use tauri::Manager;
@@ -36,6 +37,13 @@ pub fn run() {
             printer::commands::print_ticket,
             printer::commands::get_last_ticket,
             printer::commands::reprint_last,
+            // Local ticket lifecycle (ported from the Axum backend).
+            tickets::list_tickets,
+            tickets::get_ticket,
+            tickets::create_ticket,
+            tickets::update_ticket,
+            tickets::delete_ticket,
+            tickets::validate_ticket,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
