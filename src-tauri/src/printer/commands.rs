@@ -139,7 +139,7 @@ pub async fn print_ticket(
         // Store BEFORE printing so a printer failure still leaves a record we
         // can retry/reprint, and so the number is stable.
         let ticket = sqlx::query_as::<_, Ticket>(
-            "INSERT INTO tickets (ticket_number, qr_data, company, footer)
+            "INSERT INTO printed_tickets (ticket_number, qr_data, company, footer)
              VALUES (?, ?, ?, ?)
              RETURNING id, ticket_number, qr_data, company, footer, printed_at",
         )
@@ -173,7 +173,7 @@ pub async fn print_ticket(
 pub async fn get_last_ticket(state: State<'_, AppState>) -> Result<Option<Ticket>, String> {
     sqlx::query_as::<_, Ticket>(
         "SELECT id, ticket_number, qr_data, company, footer, printed_at
-         FROM tickets ORDER BY id DESC LIMIT 1",
+         FROM printed_tickets ORDER BY id DESC LIMIT 1",
     )
     .fetch_optional(&state.db)
     .await
@@ -186,7 +186,7 @@ pub async fn reprint_last(state: State<'_, AppState>, name: String) -> Result<Pr
     let result = (|| async {
         let last = sqlx::query_as::<_, Ticket>(
             "SELECT id, ticket_number, qr_data, company, footer, printed_at
-             FROM tickets ORDER BY id DESC LIMIT 1",
+             FROM printed_tickets ORDER BY id DESC LIMIT 1",
         )
         .fetch_optional(&state.db)
         .await?;
