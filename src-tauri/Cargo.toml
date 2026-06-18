@@ -41,9 +41,12 @@ chrono = { version = "0.4", features = ["serde"] }
 # NOTE: OpenPrinterW and PRINTER_DEFAULTSW are gated behind Win32_Graphics_Gdi
 # in the windows crate (PRINTER_DEFAULTSW references a GDI type), so that
 # feature is required in addition to Win32_Graphics_Printing.
+# PRINTER_INFO_2W (used by EnumPrintersW for native enumeration/status) is
+# additionally gated behind Win32_Security, so that feature is required too.
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_Graphics_Printing",
+    "Win32_Security",
     "Win32_System_Com",
 ] }

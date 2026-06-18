@@ -3,8 +3,9 @@
 //   Linux/macOS: `lpstat -p <name>` — text says "enabled"/"idle" (up) or
 //                "disabled"/"offline"/"unable" (down). If the queue is absent
 //                entirely, the device is gone (USB unplugged / removed).
-//   Windows:     PowerShell `Get-Printer <name>` — PrinterStatus and
-//                WorkOffline tell us whether it's reachable.
+//   Windows:     native EnumPrinters (via discovery.rs) — we look the name up
+//                in the enumerated set and read its real status. NO PowerShell,
+//                so the 3-second status poll never flashes a console window.
 //
 // The result drives the 🟢/🔴 badge and the pre-print gate.
 
@@ -67,41 +68,18 @@ async fn cups_status(name: &str) -> PrinterStatus {
     PrinterStatus::connected("Available")
 }
 
+/// Windows: reuse the native enumeration and pick out this printer's row.
+/// Absent from the set => the queue/device was removed.
 #[cfg(windows)]
 async fn windows_status(name: &str) -> PrinterStatus {
-    use tokio::process::Command;
-
-    // Emit "<PrinterStatus>|<WorkOffline>" so we can parse without JSON deps.
-    let script = format!(
-        "$p = Get-Printer -Name '{}' -ErrorAction SilentlyContinue; \
-         if ($null -eq $p) {{ 'MISSING' }} else {{ \"$($p.PrinterStatus)|$($p.WorkOffline)\" }}",
-        name.replace('\'', "''")
-    );
-
-    let out = match Command::new("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-        .output()
-        .await
-    {
-        Ok(o) => o,
-        Err(e) => return PrinterStatus::disconnected(format!("Get-Printer error: {e}")),
-    };
-
-    let line = String::from_utf8_lossy(&out.stdout).trim().to_string();
-
-    if line.is_empty() || line.eq_ignore_ascii_case("MISSING") {
-        return PrinterStatus::disconnected("Not found (USB removed or printer deleted)");
+    match crate::printer::discovery::discover().await {
+        Ok(list) => list
+            .into_iter()
+            .find(|d| d.name.eq_ignore_ascii_case(name))
+            .and_then(|d| d.status)
+            .unwrap_or_else(|| {
+                PrinterStatus::disconnected("Not found (USB removed or printer deleted)")
+            }),
+        Err(e) => PrinterStatus::disconnected(format!("status check failed: {e}")),
     }
-
-    let mut parts = line.splitn(2, '|');
-    let pstatus = parts.next().unwrap_or("").to_lowercase();
-    let offline = parts.next().unwrap_or("").to_lowercase();
-
-    if offline == "true" || pstatus.contains("offline") {
-        return PrinterStatus::disconnected("Powered off or offline");
-    }
-    if pstatus.contains("error") || pstatus.contains("paperout") {
-        return PrinterStatus::disconnected("Printer error / out of paper");
-    }
-    PrinterStatus::connected("Ready")
 }

@@ -31,7 +31,10 @@ pub async fn refresh_printers(state: State<'_, AppState>) -> Result<Vec<PrinterI
 }
 
 async fn list_inner(state: &AppState, persist: bool) -> Result<Vec<PrinterInfo>, PrinterError> {
-    let names = discovery::system_printers().await.unwrap_or_default();
+    // One discovery call per list. On Windows this is a single native
+    // EnumPrinters call that already carries status + kind, so we do NOT spawn
+    // a status process per printer (which is what flashed console windows).
+    let discovered = discovery::discover().await.unwrap_or_default();
 
     // Which name is the saved default?
     let default_name: Option<String> =
@@ -40,23 +43,32 @@ async fn list_inner(state: &AppState, persist: bool) -> Result<Vec<PrinterInfo>,
             .await?;
 
     if persist {
-        for name in &names {
-            sqlx::query("INSERT OR IGNORE INTO printers (name, type) VALUES (?, 'thermal')")
-                .bind(name)
+        for d in &discovered {
+            // Persist the detected kind instead of a blanket 'thermal'.
+            let kind = d.kind.clone().unwrap_or_else(|| "unknown".into());
+            sqlx::query("INSERT OR IGNORE INTO printers (name, type) VALUES (?, ?)")
+                .bind(&d.name)
+                .bind(&kind)
                 .execute(&state.db)
                 .await?;
         }
     }
 
-    let mut out = Vec::with_capacity(names.len());
-    for name in names {
-        let st = status::status_of(&name).await;
+    let mut out = Vec::with_capacity(discovered.len());
+    for d in discovered {
+        // Use the status discovery already resolved (Windows); fall back to a
+        // per-printer lookup only where discovery didn't carry it (Unix).
+        let status = match d.status {
+            Some(s) => s,
+            None => status::status_of(&d.name).await,
+        };
+        let kind = d.kind.unwrap_or_else(|| "unknown".into());
         out.push(PrinterInfo {
-            is_default: default_name.as_deref() == Some(name.as_str()),
-            kind: "thermal".into(),
+            is_default: default_name.as_deref() == Some(d.name.as_str()),
+            kind,
             is_system: true,
-            status: st,
-            name,
+            status,
+            name: d.name,
         });
     }
     Ok(out)

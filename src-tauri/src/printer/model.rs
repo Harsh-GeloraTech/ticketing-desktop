@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrinterInfo {
     pub name: String,
-    /// "thermal" for the prototype; left as a field so future code can classify.
+    /// Detected class: "thermal", "virtual", or "unknown" (Windows infers this
+    /// from driver/port; other platforms currently report "unknown").
     pub kind: String,
     /// True when this is the saved default in our DB.
     pub is_default: bool,
