@@ -5,6 +5,7 @@
 // handle the actual USB/network link.
 
 pub mod commands;
+pub mod connect;
 pub mod discovery;
 pub mod error;
 pub mod escpos;

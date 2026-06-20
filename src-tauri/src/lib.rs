@@ -37,6 +37,7 @@ pub fn run() {
             printer::commands::list_printers,
             printer::commands::refresh_printers,
             printer::commands::get_printer_status,
+            printer::commands::connect_printer,
             printer::commands::set_default_printer,
             printer::commands::get_default_printer,
             printer::commands::test_print,

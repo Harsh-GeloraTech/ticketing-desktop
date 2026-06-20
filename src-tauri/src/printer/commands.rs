@@ -7,7 +7,9 @@
 use tauri::State;
 
 use crate::db::AppState;
-use crate::printer::{discovery, error::PrinterError, escpos, model::*, spooler, status};
+use crate::printer::{
+    connect, discovery, error::PrinterError, escpos, model::*, spooler, status,
+};
 
 /// Local timestamp "YYYY-MM-DD HH:MM:SS" via SQLite (avoids pulling a time crate
 /// and matches how the backend stamps rows).
@@ -78,6 +80,14 @@ async fn list_inner(state: &AppState, persist: bool) -> Result<Vec<PrinterInfo>,
 #[tauri::command]
 pub async fn get_printer_status(name: String) -> Result<PrinterStatus, String> {
     Ok(status::status_of(&name).await)
+}
+
+/// Explicitly establish + confirm a connection to a printer and return its ID.
+/// The UI must call this and get `connected: true` before enabling any other
+/// printer action. An offline/unreachable printer returns `connected: false`.
+#[tauri::command]
+pub async fn connect_printer(name: String) -> Result<connect::ConnectResult, String> {
+    Ok(connect::connect(&name).await)
 }
 
 /// Persist the default printer (exactly one row keeps is_default = 1).
@@ -224,12 +234,14 @@ pub async fn reprint_last(state: State<'_, AppState>, name: String) -> Result<Pr
     })
 }
 
-/// Pre-print gate: refuse to send a job to a printer that isn't online.
+/// Pre-print gate: refuse to send a job unless a real connection can be
+/// confirmed (online AND a printer handle opens). This enforces the
+/// connect-first rule at the Rust layer, so it holds even if the UI is bypassed.
 async fn gate(name: &str) -> Result<(), PrinterError> {
-    let st = status::status_of(name).await;
-    if st.connected {
+    let res = connect::connect(name).await;
+    if res.connected {
         Ok(())
-    } else if st.detail.to_lowercase().contains("not found") {
+    } else if res.detail.to_lowercase().contains("not found") {
         Err(PrinterError::NotFound(name.to_string()))
     } else {
         Err(PrinterError::Offline(name.to_string()))

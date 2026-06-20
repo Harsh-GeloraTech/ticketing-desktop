@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   PrinterInfo,
+  connectPrinter,
   listPrinters,
   refreshPrinters,
   setDefaultPrinter,
@@ -21,6 +22,42 @@ export default function PrinterSettings({ onDefaultChange }: Props) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // The printer ID we have a CONFIRMED connection to. Save/Test stay disabled
+  // until this equals the selected printer.
+  const [connectedId, setConnectedId] = useState<string | null>(null);
+
+  // A connection is only valid for the printer it was made against.
+  const isConnected = connectedId !== null && connectedId === selected;
+
+  // Switching printers (or losing the list) invalidates any prior connection.
+  function selectPrinter(name: string) {
+    setSelected(name);
+    setConnectedId(null);
+    setMsg(null);
+    setErr(null);
+  }
+
+  async function handleConnect() {
+    if (!selected) return;
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const r = await connectPrinter(selected);
+      if (r.connected) {
+        setConnectedId(r.printer_id);
+        setMsg(`Connected to "${r.printer_id}". You can now save or print.`);
+      } else {
+        setConnectedId(null);
+        setErr(`Cannot connect to "${selected}": ${r.detail}`);
+      }
+    } catch (e) {
+      setConnectedId(null);
+      setErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const load = useCallback(
     async (rescan: boolean) => {
@@ -30,6 +67,9 @@ export default function PrinterSettings({ onDefaultChange }: Props) {
         setPrinters(list);
         const def = list.find((p) => p.is_default)?.name ?? null;
         setSelected((cur) => cur ?? def ?? list[0]?.name ?? null);
+        // A rescan can change device availability, so any prior connection must
+        // be re-confirmed before actions are allowed again.
+        if (rescan) setConnectedId(null);
       } catch (e) {
         setErr(String(e));
       }
@@ -49,7 +89,7 @@ export default function PrinterSettings({ onDefaultChange }: Props) {
   }
 
   async function handleSaveDefault() {
-    if (!selected) return;
+    if (!selected || !isConnected) return;
     setBusy(true);
     setErr(null);
     try {
@@ -65,7 +105,7 @@ export default function PrinterSettings({ onDefaultChange }: Props) {
   }
 
   async function handleTest() {
-    if (!selected) return;
+    if (!selected || !isConnected) return;
     setBusy(true);
     setMsg(null);
     setErr(null);
@@ -116,7 +156,7 @@ export default function PrinterSettings({ onDefaultChange }: Props) {
                     type="radio"
                     name="default-printer"
                     checked={selected === p.name}
-                    onChange={() => setSelected(p.name)}
+                    onChange={() => selectPrinter(p.name)}
                   />
                 </td>
                 <td className="mono">{p.name}</td>
@@ -141,15 +181,33 @@ export default function PrinterSettings({ onDefaultChange }: Props) {
       <div className="form-row" style={{ marginTop: 16 }}>
         <button
           className="btn btn--primary"
+          onClick={handleConnect}
+          disabled={busy || !selected || isConnected}
+        >
+          {isConnected ? "Connected ✓" : "Connect"}
+        </button>
+        <button
+          className="btn"
           onClick={handleSaveDefault}
-          disabled={busy || !selected}
+          disabled={busy || !selected || !isConnected}
         >
           Save default
         </button>
-        <button className="btn" onClick={handleTest} disabled={busy || !selected}>
+        <button
+          className="btn"
+          onClick={handleTest}
+          disabled={busy || !selected || !isConnected}
+        >
           Test connection
         </button>
       </div>
+
+      {selected && !isConnected && (
+        <p className="muted small" style={{ marginTop: 8 }}>
+          Connect to “{selected}” first — Save default and Test connection unlock
+          only after a confirmed connection.
+        </p>
+      )}
     </section>
   );
 }

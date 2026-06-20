@@ -31,10 +31,18 @@ export interface PrintResult {
   ticket: Ticket | null;
 }
 
+export interface ConnectResult {
+  connected: boolean;
+  printer_id: string | null;
+  detail: string;
+}
+
 export const listPrinters = () => invoke<PrinterInfo[]>("list_printers");
 export const refreshPrinters = () => invoke<PrinterInfo[]>("refresh_printers");
 export const getPrinterStatus = (name: string) =>
   invoke<PrinterStatus>("get_printer_status", { name });
+export const connectPrinter = (name: string) =>
+  invoke<ConnectResult>("connect_printer", { name });
 export const setDefaultPrinter = (name: string) =>
   invoke<void>("set_default_printer", { name });
 export const getDefaultPrinter = () =>
